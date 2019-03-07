@@ -29,21 +29,53 @@ app.get('/api/courses', (req, res) => {
 // http://localhost:5000/api/courses/1
 app.get('/api/courses/:id', (req, res) => {
   const course = courses.find(c => c.id === parseInt(req.params.id)) // parse string
-  if (!course) return res.status(404).send('The course with the given ID was not found')
+  if (!course)
+    return res.status(404).send('The course with the given ID was not found')
   res.send(course)
 })
 
-// multiple params
+/**************** Multiple Params **********************/
 // http://localhost:5000/api/courses/2019/3
 app.get('/api/courses/:year/:month', (req, res) => {
   res.send(req.params)
 })
 
+/**************** Query Params **********************/
 // query string param i.e sort by name (additional data or optional)
-// http://localhost:5000/api/courses/2019/3?sortBy=name
-app.get('/api/courses/:year/:month', (req, res) => {
-  res.send(req.query)
+// http://localhost:5000/api?name=Messi&age=31&club=Barcelona
+app.get('/api', (req, res) => {
+  // res.send(req.query)
+  // res.json({ name: req.query.name })
+
+  if (typeof req.query.name == 'undefined') {
+    return res.status(400).send('name is required')
+  }
+
+  if (typeof req.query.age == 'undefined') {
+    return res.status(400).send('age is required')
+  }
+  res.send({ name: req.query.name, age: req.query.age, club: req.query.club })
 })
+
+// using validation middleware
+app.get('/soccer', validateQuery(['name', 'age', 'club']), (req, res) => {
+  // If it reaches here, you can be sure that all the fields are not empty.
+  res.send({ name: req.query.name, age: req.query.age, club: req.query.club })
+})
+
+// validation middleware
+function validateQuery(fields) {
+  return (req, res, next) => {
+    for (const field of fields) {
+      if (!req.query[field]) {
+        // Field isn't present, end request
+        return res.status(400).send(`${field} is missing`)
+      }
+    }
+
+    next() // All fields are present, proceed
+  }
+}
 
 /**************** POST **********************/
 //create a new course
@@ -77,7 +109,8 @@ app.post('/api/courses', (req, res) => {
 app.put('/api/courses/:id', (req, res) => {
   // look up the course
   const course = courses.find(c => c.id === parseInt(req.params.id)) // parse string
-  if (!course) return res.status(404).send('The course with the given ID was not found')
+  if (!course)
+    return res.status(404).send('The course with the given ID was not found')
 
   // validate input
   const { error } = validateCourse(req.body) // result.error
@@ -108,7 +141,8 @@ function validateCourse(course) {
 app.delete('/api/courses/:id', (req, res) => {
   // look up the course
   const course = courses.find(c => c.id === parseInt(req.params.id)) // parse string
-  if (!course) return res.status(404).send('The course with the given ID was not found')
+  if (!course)
+    return res.status(404).send('The course with the given ID was not found')
 
   // delete
   const index = courses.indexOf(course)
