@@ -29,8 +29,7 @@ app.get('/api/courses', (req, res) => {
 // http://localhost:5000/api/courses/1
 app.get('/api/courses/:id', (req, res) => {
   const course = courses.find(c => c.id === parseInt(req.params.id)) // parse string
-  if (!course)
-    res.status(404).send('The course with the given ID was not found')
+  if (!course) return res.status(404).send('The course with the given ID was not found')
   res.send(course)
 })
 
@@ -56,20 +55,11 @@ app.post('/api/courses', (req, res) => {
     return // stop execution
   }
   */
-
-  // JOI input validation | define an schema for joi
-  const schema = {
-    name: Joi.string()
-      .min(3)
-      .required()
-  }
-
-  const result = Joi.validate(req.body, schema)
-  // console.log(result);
-
-  if (result.error) {
-    res.status(400).send(result.error.details[0].message)
-    return // stop execution
+  // validate input
+  const { error } = validateCourse(req.body) // result.error
+  if (error) {
+    res.status(400).send(error.details[0].message)
+    return
   }
 
   // save in memory
@@ -87,18 +77,12 @@ app.post('/api/courses', (req, res) => {
 app.put('/api/courses/:id', (req, res) => {
   // look up the course
   const course = courses.find(c => c.id === parseInt(req.params.id)) // parse string
-  if (!course)
-    res.status(404).send('The course with the given ID was not found')
+  if (!course) return res.status(404).send('The course with the given ID was not found')
 
-  // validate
-  const schema = {
-    name: Joi.string()
-      .min(3)
-      .required()
-  }
-  const result = Joi.validate(req.body, schema)
-  if (result.error) {
-    res.status(400).send(result.error.details[0].message)
+  // validate input
+  const { error } = validateCourse(req.body) // result.error
+  if (error) {
+    res.status(400).send(error.details[0].message)
     return
   }
 
@@ -108,7 +92,31 @@ app.put('/api/courses/:id', (req, res) => {
   res.send(course)
 })
 
-// Abstract JOI validation for reusability
+// Abstract JOI validation for reusability and DRY
+function validateCourse(course) {
+  // validate
+  const schema = {
+    name: Joi.string()
+      .min(3)
+      .required()
+  }
+  return Joi.validate(course, schema)
+}
+
+/**************** DELETE **********************/
+// delete a course
+app.delete('/api/courses/:id', (req, res) => {
+  // look up the course
+  const course = courses.find(c => c.id === parseInt(req.params.id)) // parse string
+  if (!course) return res.status(404).send('The course with the given ID was not found')
+
+  // delete
+  const index = courses.indexOf(course)
+  courses.splice(index, 1)
+
+  // return course that was deleted
+  res.send(course)
+})
 
 /**************** PORT **********************/
 const port = process.env.PORT || 5000
